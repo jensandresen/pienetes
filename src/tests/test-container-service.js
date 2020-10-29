@@ -36,6 +36,11 @@ describe("container-service", async function () {
       await sut.removeContainer("foo");
       assert.equal(actualCommand, "docker container rm foo");
     });
+
+    it("runs expected pull command", async function () {
+      await sut.pullContainer("foo");
+      assert.equal(actualCommand, "docker pull foo");
+    });
   });
 
   describe("create container", async function () {

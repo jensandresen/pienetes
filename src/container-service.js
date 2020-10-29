@@ -16,6 +16,7 @@ export default class ContainerService {
     this.renameContainer = this.renameContainer.bind(this);
     this.removeContainer = this.removeContainer.bind(this);
     this.createContainer = this.createContainer.bind(this);
+    this.pullContainer = this.pullContainer.bind(this);
     this.getRunningContainers = this.getRunningContainers.bind(this);
   }
 
@@ -35,6 +36,10 @@ export default class ContainerService {
 
   async removeContainer(containerName) {
     await this.cmdRunner(`docker container rm ${containerName}`);
+  }
+
+  async pullContainer(containerImage) {
+    await this.cmdRunner(`docker pull ${containerImage}`);
   }
 
   async createContainer(manifest) {

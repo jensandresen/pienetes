@@ -16,6 +16,7 @@ describe("manifest-service", async function () {
       stopContainer: dummyCallback,
       renameContainer: dummyCallback,
       removeContainer: dummyCallback,
+      pullContainer: dummyCallback,
       getRunningContainers: () => [],
     };
     return { ...defaults, ...overrides };
@@ -123,6 +124,22 @@ describe("manifest-service", async function () {
       });
     });
 
+    describe("pulls container image", async function () {
+      it("runs expected pull command", async function () {
+        let wasCalled = false;
+        const spy = buildContainerService({
+          pullContainer: () => (wasCalled = true),
+        });
+
+        const sut = buildSut({
+          containerService: spy,
+        });
+
+        await sut.applyManifest(buildManifest());
+        assert.isTrue(wasCalled);
+      });
+    });
+
     describe("starts a container", async function () {
       it("runs expected start command", async function () {
         let wasCalled = false;
@@ -140,6 +157,22 @@ describe("manifest-service", async function () {
     });
 
     describe("when a container is already running", async function () {
+      describe("pulls container image", async function () {
+        it("runs expected pull command", async function () {
+          let wasCalled = false;
+          const spy = buildContainerService({
+            pullContainer: () => (wasCalled = true),
+          });
+
+          const sut = buildSut({
+            containerService: spy,
+          });
+
+          await sut.applyManifest(buildManifest());
+          assert.isTrue(wasCalled);
+        });
+      });
+
       it("renames the running container", async function () {
         const stubRunningContainer = { name: "foo" };
 

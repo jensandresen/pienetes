@@ -44,11 +44,13 @@ export default class ManifestService {
   }
 
   async handleNewContainer(manifest) {
+    await this.containerService.pullContainer(manifest.image);
     await this.containerService.createContainer(manifest);
     await this.containerService.startContainer(manifest.name);
   }
 
   async handleUpdateExisting(manifest) {
+    await this.containerService.pullContainer(manifest.image);
     const tempContainerName = manifest.name + "-old";
     await this.containerService.renameContainer(
       manifest.name,
