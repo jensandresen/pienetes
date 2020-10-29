@@ -10,6 +10,9 @@ WORKDIR /app
 COPY src/package*.json ./
 RUN npm install
 
+COPY bootstrap.sh ./
+RUN chmod +x bootstrap.sh
+
 COPY src/* ./
 
-ENTRYPOINT [ "npm", "start" ]
+ENTRYPOINT [ "sh", "bootstrap.sh" ]
