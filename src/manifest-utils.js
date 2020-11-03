@@ -13,15 +13,12 @@ function transformPorts(ports) {
 
 export function parseManifest(text) {
   return new Promise((resolve) => {
-    const { service } = yaml.parse(text);
+    const manifest = yaml.parse(text);
 
-    const result = {
-      ...service,
-      ...{
-        ports: transformPorts(service.ports),
-      },
-    };
+    if (manifest.service.ports) {
+      manifest.service.ports = transformPorts(manifest.service.ports);
+    }
 
-    resolve(result);
+    resolve(manifest);
   });
 }

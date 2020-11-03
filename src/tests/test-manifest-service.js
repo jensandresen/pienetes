@@ -32,7 +32,10 @@ describe("manifest-service", async function () {
       image: "foo-image:latest",
       ports: [{ host: 1, container: 2 }],
     };
-    return { ...defaults, ...overrides };
+    return {
+      version: 1,
+      service: { ...defaults, ...overrides },
+    };
   };
 
   describe("ctor", function () {

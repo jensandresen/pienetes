@@ -15,6 +15,7 @@ export default class ManifestService {
     this.isAlreadyRunning = this.isAlreadyRunning.bind(this);
     this.handleUpdateExisting = this.handleUpdateExisting.bind(this);
     this.handleNewContainer = this.handleNewContainer.bind(this);
+    this.extractServiceDefinition = this.extractServiceDefinition.bind(this);
   }
 
   async hasPortConflictWithRunningContainers(manifest) {
@@ -43,23 +44,51 @@ export default class ManifestService {
     return !!containers.find((x) => x.name == containerName);
   }
 
-  async handleNewContainer(manifest) {
-    await this.containerService.pullContainer(manifest.image);
-    await this.containerService.createContainer(manifest);
-    await this.containerService.startContainer(manifest.name);
+  async handleNewContainer(serviceDefinition) {
+    console.log(`Creating a brand new container "${serviceDefinition.name}"`);
+
+    console.log(`Pulling new image "${serviceDefinition.image}"`);
+    await this.containerService.pullContainer(serviceDefinition.image);
+
+    console.log("Creating a new container from service definition");
+    await this.containerService.createContainer(serviceDefinition);
+
+    console.log("Starting the newly created container");
+    await this.containerService.startContainer(serviceDefinition.name);
+
+    console.log("Done!");
   }
 
-  async handleUpdateExisting(manifest) {
-    await this.containerService.pullContainer(manifest.image);
-    const tempContainerName = manifest.name + "-old";
+  async handleUpdateExisting(serviceDefinition) {
+    console.log(`Updating existing countainer "${serviceDefinition.name}"`);
+
+    console.log(`Pulling new image "${serviceDefinition.image}"`);
+    await this.containerService.pullContainer(serviceDefinition.image);
+
+    console.log("Giving running container a temporary name");
+    const tempContainerName = serviceDefinition.name + "-old";
     await this.containerService.renameContainer(
-      manifest.name,
+      serviceDefinition.name,
       tempContainerName
     );
-    await this.containerService.createContainer(manifest);
+
+    console.log("Creating a new container from service definition");
+    await this.containerService.createContainer(serviceDefinition);
+
+    console.log("Stopping running container");
     await this.containerService.stopContainer(tempContainerName);
-    await this.containerService.startContainer(manifest.name);
+
+    console.log("Starting the newly created container");
+    await this.containerService.startContainer(serviceDefinition.name);
+
+    console.log("Removing the old stopped container");
     await this.containerService.removeContainer(tempContainerName);
+
+    console.log("Done!");
+  }
+
+  extractServiceDefinition(manifest) {
+    return manifest.service;
   }
 
   async applyManifest(manifest) {
@@ -67,26 +96,33 @@ export default class ManifestService {
       throw Error("Invalid manifest. It has not been initialized.");
     }
 
-    if (!manifest.name) {
+    const serviceDefinition = this.extractServiceDefinition(manifest);
+    if (!serviceDefinition) {
+      throw Error("Invalid manifest. Missing required service definition.");
+    }
+
+    if (!serviceDefinition.name) {
       throw Error("Invalid manifest. Missing required name.");
     }
 
-    if (!manifest.image) {
+    if (!serviceDefinition.image) {
       throw Error("Invalid manifest. Missing required image.");
     }
 
-    if (await this.hasPortConflictWithRunningContainers(manifest)) {
+    if (await this.hasPortConflictWithRunningContainers(serviceDefinition)) {
       throw Error(
         `Invalid port mapping! Manifest has port mapping that is already in use by another container on the host.`
       );
     }
 
-    const isAlreadyRunning = await this.isAlreadyRunning(manifest.name);
+    const isAlreadyRunning = await this.isAlreadyRunning(
+      serviceDefinition.name
+    );
 
     if (isAlreadyRunning) {
-      await this.handleUpdateExisting(manifest);
+      await this.handleUpdateExisting(serviceDefinition);
     } else {
-      await this.handleNewContainer(manifest);
+      await this.handleNewContainer(serviceDefinition);
     }
   }
 }

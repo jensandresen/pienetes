@@ -23,9 +23,9 @@ app.get("/api/containers", async (req, res) => {
 
 app.post("/api/applymanifest", async (req, res) => {
   const manifest = await manifestParser.parse(req.body);
-  await manifestService.applyManifest(manifest);
+  manifestService.applyManifest(manifest);
 
-  res.status(201).send({ message: "OK" });
+  res.status(202).send();
 });
 
 // ----------------------------------------------------------------------------

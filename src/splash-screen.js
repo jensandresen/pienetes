@@ -7,4 +7,6 @@ const splashContent = readFileSync(resolve("./splash.txt"), {
 
 export function printSplash() {
   console.log(splashContent);
+  console.log("");
+  console.log("");
 }

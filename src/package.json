@@ -22,12 +22,13 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "moment": "^2.29.1",
+    "object-hash": "^2.0.3",
+    "esm": "^3.2.25",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "esm": "^3.2.25",
     "mocha": "^8.1.3"
   }
 }
