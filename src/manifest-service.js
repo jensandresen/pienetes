@@ -1,12 +1,20 @@
+import hash from "object-hash";
+
 export default class ManifestService {
   constructor(options) {
-    const { containerService } = options;
+    const { containerService, manifestRepository, logger } = options;
 
     if (!containerService) {
       throw new Error('Invalid argument value of "containerService".');
     }
 
+    if (!manifestRepository) {
+      throw new Error('Invalid argument value of "manifestRepository".');
+    }
+
     this.containerService = containerService;
+    this.manifestRepository = manifestRepository;
+    this.logger = logger || (() => {});
 
     this.applyManifest = this.applyManifest.bind(this);
     this.hasPortConflictWithRunningContainers = this.hasPortConflictWithRunningContainers.bind(
@@ -16,6 +24,8 @@ export default class ManifestService {
     this.handleUpdateExisting = this.handleUpdateExisting.bind(this);
     this.handleNewContainer = this.handleNewContainer.bind(this);
     this.extractServiceDefinition = this.extractServiceDefinition.bind(this);
+    this.hasBeenApplied = this.hasBeenApplied.bind(this);
+    this.storeManifest = this.storeManifest.bind(this);
   }
 
   async hasPortConflictWithRunningContainers(manifest) {
@@ -45,50 +55,67 @@ export default class ManifestService {
   }
 
   async handleNewContainer(serviceDefinition) {
-    console.log(`Creating a brand new container "${serviceDefinition.name}"`);
+    this.logger(`Creating a brand new container "${serviceDefinition.name}"`);
 
-    console.log(`Pulling new image "${serviceDefinition.image}"`);
+    this.logger(`Pulling new image "${serviceDefinition.image}"`);
     await this.containerService.pullContainer(serviceDefinition.image);
 
-    console.log("Creating a new container from service definition");
+    this.logger("Creating a new container from service definition");
     await this.containerService.createContainer(serviceDefinition);
 
-    console.log("Starting the newly created container");
+    this.logger("Starting the newly created container");
     await this.containerService.startContainer(serviceDefinition.name);
 
-    console.log("Done!");
+    this.logger("Done!");
   }
 
   async handleUpdateExisting(serviceDefinition) {
-    console.log(`Updating existing countainer "${serviceDefinition.name}"`);
+    this.logger(`Updating existing countainer "${serviceDefinition.name}"`);
 
-    console.log(`Pulling new image "${serviceDefinition.image}"`);
+    this.logger(`Pulling new image "${serviceDefinition.image}"`);
     await this.containerService.pullContainer(serviceDefinition.image);
 
-    console.log("Giving running container a temporary name");
+    this.logger("Giving running container a temporary name");
     const tempContainerName = serviceDefinition.name + "-old";
     await this.containerService.renameContainer(
       serviceDefinition.name,
       tempContainerName
     );
 
-    console.log("Creating a new container from service definition");
+    this.logger("Creating a new container from service definition");
     await this.containerService.createContainer(serviceDefinition);
 
-    console.log("Stopping running container");
+    this.logger("Stopping running container");
     await this.containerService.stopContainer(tempContainerName);
 
-    console.log("Starting the newly created container");
+    this.logger("Starting the newly created container");
     await this.containerService.startContainer(serviceDefinition.name);
 
-    console.log("Removing the old stopped container");
+    this.logger("Removing the old stopped container");
     await this.containerService.removeContainer(tempContainerName);
 
-    console.log("Done!");
+    this.logger("Done!");
   }
 
   extractServiceDefinition(manifest) {
     return manifest.service;
+  }
+
+  async hasBeenApplied(manifest) {
+    const manifestChecksum = hash(manifest);
+    const existingManifest = await this.manifestRepository.findByChecksum(
+      manifestChecksum
+    );
+    return !!existingManifest;
+  }
+
+  async storeManifest(serviceName, manifest) {
+    const manifestChecksum = hash(manifest);
+    await this.manifestRepository.storeManifest(
+      serviceName,
+      manifest,
+      manifestChecksum
+    );
   }
 
   async applyManifest(manifest) {
@@ -109,6 +136,14 @@ export default class ManifestService {
       throw Error("Invalid manifest. Missing required image.");
     }
 
+    const hasBeenApplied = await this.hasBeenApplied(manifest);
+    if (hasBeenApplied) {
+      this.logger(
+        `Manifest for "${serviceDefinition.name}" has already been applied."`
+      );
+      return;
+    }
+
     if (await this.hasPortConflictWithRunningContainers(serviceDefinition)) {
       throw Error(
         `Invalid port mapping! Manifest has port mapping that is already in use by another container on the host.`
@@ -124,5 +159,7 @@ export default class ManifestService {
     } else {
       await this.handleNewContainer(serviceDefinition);
     }
+
+    await this.storeManifest(serviceDefinition.name, manifest);
   }
 }

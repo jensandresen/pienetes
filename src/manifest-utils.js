@@ -4,6 +4,7 @@ function transformPorts(ports) {
   return (ports || []).map((portDefinition) => {
     const [host, container] = portDefinition
       .replace('"', "")
+      .replace("'", "")
       .split(":")
       .map((port) => parseInt(port.trim()));
 
@@ -11,7 +12,7 @@ function transformPorts(ports) {
   });
 }
 
-export function parseManifest(text) {
+export function manifestDeserializer(text) {
   return new Promise((resolve) => {
     const manifest = yaml.parse(text);
 
@@ -20,5 +21,19 @@ export function parseManifest(text) {
     }
 
     resolve(manifest);
+  });
+}
+
+export function manifestSerializer(manifest) {
+  return new Promise((resolve) => {
+    const copy = { ...manifest };
+
+    if (manifest.service.ports) {
+      manifest.service.ports = manifest.service.ports.map(
+        (map) => `${map.host}:${map.container}`
+      );
+    }
+
+    resolve(yaml.stringify(copy));
   });
 }

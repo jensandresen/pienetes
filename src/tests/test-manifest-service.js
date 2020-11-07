@@ -21,8 +21,18 @@ describe("manifest-service", async function () {
     };
     return { ...defaults, ...overrides };
   };
+  const buildManifestRepository = (overrides) => {
+    const defaults = {
+      findByChecksum: dummyCallback,
+      storeManifest: dummyCallback,
+    };
+    return { ...defaults, ...overrides };
+  };
   const buildSut = (overrides) => {
-    const defaults = { containerService: buildContainerService() };
+    const defaults = {
+      containerService: buildContainerService(),
+      manifestRepository: buildManifestRepository(),
+    };
     return new ManifestService({ ...defaults, ...overrides });
   };
 
@@ -50,6 +60,20 @@ describe("manifest-service", async function () {
       assert.throws(
         () => buildSut({ containerService: null }),
         /.*?containerService.*?/
+      );
+    });
+
+    it("throws error if manifestRepository is undefined", function () {
+      assert.throws(
+        () => buildSut({ manifestRepository: undefined }),
+        /.*?manifestRepository.*?/
+      );
+    });
+
+    it("throws error if manifestRepository is null", function () {
+      assert.throws(
+        () => buildSut({ manifestRepository: null }),
+        /.*?manifestRepository.*?/
       );
     });
   });
@@ -253,6 +277,22 @@ describe("manifest-service", async function () {
           buildManifest({ name: stubRunningContainer.name })
         );
 
+        assert.isTrue(wasCalled);
+      });
+    });
+
+    describe("ignoring already applied manifests", async function () {
+      it("looks up manifest by checksum", async function () {
+        let wasCalled = false;
+        const spy = buildManifestRepository({
+          findByChecksum: () => (wasCalled = true),
+        });
+
+        const sut = buildSut({
+          manifestRepository: spy,
+        });
+
+        await sut.applyManifest(buildManifest());
         assert.isTrue(wasCalled);
       });
     });

@@ -1,12 +1,12 @@
-const mocha = require("mocha");
-const { assert } = require("chai");
-const { parseManifest } = require("../manifest-utils");
+import mocha from "mocha";
+import { assert } from "chai";
+import { manifestDeserializer } from "../manifest-utils";
 
 describe("manifest-utils", async function () {
-  describe("parseManifest", async function () {
+  describe("manifestDeserializer", async function () {
     it("returns expected name", async function () {
       const expected = "foo";
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           name: ${expected}
       `);
@@ -16,7 +16,7 @@ describe("manifest-utils", async function () {
 
     it("returns expected image", async function () {
       const expected = "foo:bar";
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           image: ${expected}
       `);
@@ -31,7 +31,7 @@ describe("manifest-utils", async function () {
           container: 80,
         },
       ];
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           ports:
             - "8080:80"
@@ -47,7 +47,7 @@ describe("manifest-utils", async function () {
           container: 80,
         },
       ];
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           ports:
             - 8080:80
@@ -57,7 +57,7 @@ describe("manifest-utils", async function () {
     });
 
     it("returns expected environment variable when a single one is defined", async function () {
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           environmentVariables:
             foo: bar
@@ -67,7 +67,7 @@ describe("manifest-utils", async function () {
     });
 
     it("returns expected environment variable when multiple is defined", async function () {
-      const { service } = await parseManifest(`
+      const { service } = await manifestDeserializer(`
         service:
           environmentVariables:
             foo: bar
