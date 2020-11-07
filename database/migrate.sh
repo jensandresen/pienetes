@@ -2,7 +2,7 @@
 
 MIGRATION_TABLE_NAME="_Migration"
 FINAL_SCRIPT_FILE_PATH=${PWD}/db_bootstrap.sql
-DATABASE_FILE_PATH=${DATABASE_FILE:-"$PWD/pienetes-store.db"}
+DATABASE=${DATABASE_FILE_PATH:-"$PWD/pienetes-store.db"}
 
 FINAL_SCRIPT="\n"
 FINAL_SCRIPT+="-- migration script management table\n"
@@ -33,10 +33,10 @@ echo "Generating database bootstrap script..."
 printf "$FINAL_SCRIPT" > "$FINAL_SCRIPT_FILE_PATH"
 
 echo "Bootstrapping the database..."
-sqlite3 "$DATABASE_FILE_PATH" ".read $FINAL_SCRIPT_FILE_PATH"
+sqlite3 "$DATABASE" ".read $FINAL_SCRIPT_FILE_PATH"
 
 echo "Removing bootstrap script"
 rm -Rf "$FINAL_SCRIPT_FILE_PATH"
 
 echo "Done!"
-echo "Database ready: $DATABASE_FILE_PATH"
+echo "Database ready: $DATABASE"

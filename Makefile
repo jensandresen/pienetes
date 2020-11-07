@@ -39,9 +39,9 @@ start-local:
 	@cd src && DATABASE_FILE_PATH=$(DATABASE_FILE_PATH) npm start
 
 run: 
-	docker run -d \
+	docker run \
 		--name ${NAME} \
-		--restart unless-stopped \
 		-p 5000:3000 \
 		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v ${PWD}/database/pienetes.db:/data/pienetes.db \
 		$(NAME)

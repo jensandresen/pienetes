@@ -4,6 +4,8 @@ RUN apk update
 RUN apk add git
 RUN apk add make
 RUN apk add docker
+RUN apk add bash
+RUN apk add sqlite
 
 WORKDIR /app
 
@@ -15,4 +17,10 @@ RUN chmod +x bootstrap.sh
 
 COPY src/* ./
 
-ENTRYPOINT [ "sh", "bootstrap.sh" ]
+RUN mkdir /data-migration
+COPY database /data-migration
+
+RUN touch /data/pienetes.db
+ENV DATABASE_FILE_PATH=/data/pienetes.db
+
+ENTRYPOINT [ "bash", "bootstrap.sh" ]
