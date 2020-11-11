@@ -6,7 +6,8 @@ import {
 import ContainerService from "./container-service";
 import ManifestService from "./manifest-service";
 import ManifestRepository, {
-  fileBasedDatabaseFactory,
+  databaseFactory,
+  getConnectionString,
 } from "./manifest-repository";
 
 let database = null;
@@ -20,8 +21,8 @@ const manifestSerializer = {
 };
 
 async function init() {
-  containerService = new ContainerService({ cmdRunner: run });
-  database = await fileBasedDatabaseFactory(process.env.DATABASE_FILE_PATH);
+  const connectionString = await getConnectionString();
+  database = await databaseFactory(connectionString);
 
   manifestRepository = new ManifestRepository({
     db: database,
@@ -29,6 +30,8 @@ async function init() {
     deserializer: manifestSerializer.deserialize,
     logger: defaultLogger,
   });
+
+  containerService = new ContainerService({ cmdRunner: run });
 
   manifestService = new ManifestService({
     containerService: containerService,

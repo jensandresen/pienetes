@@ -60,6 +60,11 @@ export default class ManifestService {
     this.logger(`Pulling new image "${serviceDefinition.image}"`);
     await this.containerService.pullContainer(serviceDefinition.image);
 
+    try {
+      this.logger("Removing any old stopped container");
+      await this.containerService.removeContainer(serviceDefinition.name);
+    } catch {}
+
     this.logger("Creating a new container from service definition");
     await this.containerService.createContainer(serviceDefinition);
 

@@ -1,19 +1,28 @@
-import sqlite, { OPEN_READWRITE } from "sqlite3";
+import { readFile } from "fs/promises";
+import { Client } from "pg";
 
-const sq = sqlite.verbose();
+export async function getConnectionString() {
+  let result = process.env.CONNECTION_STRING;
+  if (!result) {
+    return null;
+  }
 
-export function inMemoryDatabaseFactory() {
-  return new Promise((resolve, reject) => {
-    const db = new sq.Database(":memory:");
-    resolve(db);
-  });
+  if (result.startsWith("SECRET:")) {
+    const filePath = result.substring("SECRET:".length).trim();
+    result = await readFile(filePath, { encoding: "utf8 " });
+  }
+
+  return result.trim();
 }
 
-export function fileBasedDatabaseFactory(filePath) {
-  return new Promise((resolve, reject) => {
-    const db = new sq.Database(filePath, OPEN_READWRITE);
-    resolve(db);
+export async function databaseFactory(connectionString) {
+  const client = new Client({
+    connectionString,
   });
+
+  await client.connect();
+
+  return client;
 }
 
 export default class ManifestRepository {
@@ -43,45 +52,35 @@ export default class ManifestRepository {
     this.getByName = this.getByName.bind(this);
 
     this.dbRead = this.dbRead.bind(this);
-    this.dbWrite = this.dbWrite.bind(this);
+
+    this.exists = this.exists.bind(this);
+  }
+
+  async exists(serviceName) {
+    const existingManifest = await this.getByName(serviceName);
+    return !!existingManifest;
   }
 
   async storeManifest(serviceName, manifest, checksum) {
-    const existingManifest = await this.getByName(serviceName);
+    const serializedManifest = await this.serializer(manifest);
 
-    const sql = !!existingManifest
-      ? `UPDATE Manifest SET data = $data, checksum = $checksum, lastApplied = $lastApplied WHERE name = '${serviceName}'`
-      : "INSERT INTO Manifest (name, data, checksum, lastApplied) VALUES ($name, $data, $checksum, $lastApplied)";
-
-    const params = !!existingManifest
+    const alreadyExists = await this.exists(serviceName);
+    const query = alreadyExists
       ? {
-          $data: await this.serializer(manifest),
-          $checksum: checksum,
-          $lastApplied: new Date().toUTCString(),
+          text: `UPDATE manifest SET data = $1, checksum = $2, "lastApplied" = NOW() WHERE name = $3`,
+          values: [serializedManifest, checksum, serviceName],
         }
       : {
-          $name: serviceName,
-          $data: await this.serializer(manifest),
-          $checksum: checksum,
-          $lastApplied: new Date().toUTCString(),
+          text: `INSERT INTO manifest (name, data, checksum, "lastApplied") VALUES ($1, $2, $3, NOW())`,
+          values: [serviceName, serializedManifest, checksum],
         };
 
-    const self = this;
-    return new Promise((resolve, reject) => {
-      self.db.run(sql, params, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          self.logger(`Success! Stored manifest for "${serviceName}".`);
-          resolve();
-        }
-      });
-    });
+    await this.db.query(query);
   }
 
   async findByChecksum(checksum) {
     const result = await this.dbRead(
-      `SELECT * FROM Manifest WHERE checksum = '${checksum}'`
+      `SELECT * FROM manifest WHERE checksum = '${checksum}'`
     );
 
     if (result.length > 0) {
@@ -94,7 +93,7 @@ export default class ManifestRepository {
   async getAll() {
     const list = [];
 
-    const result = await this.dbRead("SELECT * FROM Manifest");
+    const result = await this.dbRead("SELECT * FROM manifest");
     for (let row of result) {
       const manifest = await this.deserializer(row["data"]);
       list.push(manifest);
@@ -103,35 +102,14 @@ export default class ManifestRepository {
     return list;
   }
 
-  dbRead(sql) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      self.db.all(sql, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows || []);
-        }
-      });
-    });
-  }
-
-  dbWrite(sql, params) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      self.db.run(sql, params, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+  async dbRead(sql) {
+    const result = await this.db.query(sql);
+    return result.rows || [];
   }
 
   async getByName(name) {
     const result = await this.dbRead(
-      `SELECT * FROM Manifest WHERE name = '${name}'`
+      `SELECT * FROM manifest WHERE name = '${name}'`
     );
 
     if (result.length === 1) {

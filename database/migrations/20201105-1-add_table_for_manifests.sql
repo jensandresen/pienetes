@@ -1,7 +1,7 @@
 -- add table for manifests
-CREATE TABLE Manifest (
-	"name" text PRIMARY KEY,
+CREATE TABLE manifest (
+	"name" varchar(255) PRIMARY KEY,
    	"data" text NOT NULL,
-   	"checksum" text NOT NULL,
-   	"lastApplied" text NOT NULL
+   	"checksum" varchar(255) NOT NULL,
+   	"lastApplied" timestamp NOT NULL
 );

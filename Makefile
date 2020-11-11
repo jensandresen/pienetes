@@ -2,6 +2,11 @@ NAME=pienetes-engine
 PLATFORM=linux/amd64
 CONTAINER_REGISTRY=mondayworks.azurecr.io
 BUILD_NUMBER:=latest
+CONTAINER_NETWORK=pienetes-net
+
+.PHONY: init
+init:
+	docker network create $(CONTAINER_NETWORK)
 
 .PHONY: build
 build: BUILDER=$(NAME)-builder
@@ -24,19 +29,33 @@ unittests:
 
 unittests-watch:
 	@cd src && npm run tests:watch
-	
-start-local: DATABASE_FILE_NAME=pienetes.db
-start-local: DATABASE_FILE_PATH=${PWD}/database/$(DATABASE_FILE_NAME)
-start-local: DATABASE_BUILDER=$(NAME)-db-builder
-start-local:
-	@-rm $(DATABASE_FILE_PATH)
-	@touch $(DATABASE_FILE_PATH)
+
+start-db:
+	@-docker rm -f pienetes-db
+	@docker run -d --rm \
+		-p 5432:5432 \
+		-e POSTGRES_USER=pg \
+		-e POSTGRES_PASSWORD=123456 \
+		--name pienetes-db \
+		--network $(CONTAINER_NETWORK) \
+		postgres
+
+start-db-migration: DATABASE_BUILDER=$(NAME)-db-builder
+start-db-migration:
 	@cd database && docker build -t $(DATABASE_BUILDER) .
 	@docker run -it --rm \
-		-e DATABASE_FILE=/data/$(DATABASE_FILE_NAME) \
-		-v $(DATABASE_FILE_PATH):/data/$(DATABASE_FILE_NAME) \
+		-v ${PWD}/database:/data \
+		-e PGHOST=pienetes-db  \
+		-e PGPORT=5432  \
+		-e PGDATABASE=postgres \
+		-e PGUSER=pg \
+		-e PGPASSWORD=123456 \
+		--network $(CONTAINER_NETWORK) \
 		$(DATABASE_BUILDER)
-	@cd src && DATABASE_FILE_PATH=$(DATABASE_FILE_PATH) npm start
+
+start-local: CONNECTION_STRING=postgres://pg:123456@localhost:5432/postgres
+start-local: start-db start-db-migration
+	@cd src && CONNECTION_STRING=$(CONNECTION_STRING) npm start
 
 run: 
 	docker run \
