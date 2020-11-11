@@ -65,6 +65,10 @@ describe("container-service", async function () {
       it("sets expected restart policy", function () {
         assert.include(actualCommand, "--restart unless-stopped");
       });
+
+      it("sets expected network", function () {
+        assert.include(actualCommand, "--network pienetes-net");
+      });
     });
 
     describe("on simple service definition with ports", async function () {

@@ -47,6 +47,7 @@ export default class ContainerService {
       "docker",
       "create",
       "--restart unless-stopped",
+      "--network pienetes-net",
       `--name "${manifest.name}"`,
     ];
 
