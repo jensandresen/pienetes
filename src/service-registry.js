@@ -9,10 +9,12 @@ import ManifestRepository, {
   databaseFactory,
   getConnectionString,
 } from "./manifest-repository";
+import SecretRepository from "./secret-repository";
 
 let database = null;
 let containerService = null;
 let manifestRepository = null;
+let secretRepository = null;
 let manifestService = null;
 const defaultLogger = (text) => console.log(text);
 const manifestSerializer = {
@@ -28,6 +30,11 @@ async function init() {
     db: database,
     serializer: manifestSerializer.serialize,
     deserializer: manifestSerializer.deserialize,
+    logger: defaultLogger,
+  });
+
+  secretRepository = new SecretRepository({
+    db: database,
     logger: defaultLogger,
   });
 
@@ -47,3 +54,4 @@ export const getManifestRepository = () => manifestRepository;
 export const getManifestService = () => manifestService;
 export const getManifestSerializer = () => manifestSerializer;
 export const logger = defaultLogger;
+export const getSecretRepository = () => secretRepository;

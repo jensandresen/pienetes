@@ -6,6 +6,8 @@ import {
   getManifestSerializer,
   getContainerService,
   getManifestRepository,
+  getSecretRepository,
+  logger,
 } from "./service-registry";
 
 const app = express();
@@ -55,6 +57,32 @@ app.post("/api/applymanifest", async (req, res) => {
   getManifestService().applyManifest(manifest);
 
   res.status(202).send();
+});
+
+app.get("/api/secrets/:name", async (req, res) => {
+  const name = req.params.name || "";
+  const secret = await getSecretRepository().readSecret(name);
+
+  if (!secret) {
+    res.status(404).send({
+      message: `Unable to find secret with name "${name}".`,
+    });
+  } else {
+    res.send(secret);
+  }
+});
+
+app.put("/api/secrets/:name", async (req, res) => {
+  const name = req.params.name || "";
+  const value = req.body;
+
+  try {
+    await getSecretRepository().writeSecret(name, value);
+    res.status(204).send();
+  } catch (err) {
+    logger(err);
+    res.status(500).send(err.toString());
+  }
 });
 
 // ----------------------------------------------------------------------------

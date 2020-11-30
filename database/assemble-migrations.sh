@@ -30,17 +30,21 @@ add_migration_table() {
 --
 -- BEGIN: Migration table
 -- 
-BEGIN TRANSACTION;
+DO \$\$
+BEGIN
     CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.\"${MIGRATION_TABLE_NAME}\"
     (
         \"script_file\"  varchar(255) NOT NULL PRIMARY KEY,
         \"date_applied\" timestamp NOT NULL
     );
-COMMIT;
+END;
+\$\$;
 
-BEGIN TRANSACTION;
+DO \$\$
+BEGIN
     CREATE UNIQUE INDEX IF NOT EXISTS ${SCHEMA_NAME}_${MIGRATION_TABLE_NAME}_script_file_idx ON ${SCHEMA_NAME}.\"${MIGRATION_TABLE_NAME}\" (script_file);
-COMMIT;
+END;
+\$\$;
 --
 -- END: Migration table
 --
@@ -66,7 +70,7 @@ $(cat $f)
         INSERT INTO ${SCHEMA_NAME}.\"${MIGRATION_TABLE_NAME}\" (script_file, date_applied) VALUES ('${SCRIPT_NAME}', NOW());
     END IF;    
 END;
-\$\$
+\$\$;
 --
 -- END: file $SCRIPT_NAME
 --
