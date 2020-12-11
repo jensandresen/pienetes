@@ -3,6 +3,7 @@ PLATFORM=linux/amd64
 CONTAINER_REGISTRY=mondayworks.azurecr.io
 BUILD_NUMBER:=latest
 CONTAINER_NETWORK=pienetes-net
+TEMP_DIR=${PWD}/tmp
 
 .PHONY: init
 init:
@@ -53,9 +54,13 @@ start-db-migration:
 		--network $(CONTAINER_NETWORK) \
 		$(DATABASE_BUILDER)
 
+clean-temp-dir:
+	rm -Rf $(TEMP_DIR)
+	mkdir $(TEMP_DIR)
+
 start-local: CONNECTION_STRING=postgres://pg:123456@localhost:5432/postgres
-start-local: start-db start-db-migration
-	@cd src && CONNECTION_STRING=$(CONNECTION_STRING) npm start
+start-local: clean-temp-dir start-db start-db-migration
+	@cd src && CONNECTION_STRING=$(CONNECTION_STRING) LOCAL_SECRETS_DIR=$(TEMP_DIR) HOST_SECRETS_DIR=$(TEMP_DIR) npm start
 
 run: 
 	docker run \

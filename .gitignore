@@ -129,3 +129,4 @@ dist
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode
 database/*.db
 database/db_bootstrap.sql
+tmp/

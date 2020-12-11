@@ -8,8 +8,18 @@ function objectAsArray(obj) {
 
 export default class ContainerService {
   constructor(options) {
-    const { cmdRunner } = options;
+    const { cmdRunner, secretService } = options;
+
+    if (!cmdRunner) {
+      throw Error('Error! Missing required argument "cmdRunner".');
+    }
+
+    if (!secretService) {
+      throw Error('Error! Missing required argument "secretService".');
+    }
+
     this.cmdRunner = cmdRunner;
+    this.secretService = secretService;
 
     this.startContainer = this.startContainer.bind(this);
     this.stopContainer = this.stopContainer.bind(this);
@@ -51,14 +61,23 @@ export default class ContainerService {
       `--name "${manifest.name}"`,
     ];
 
+    // port mappings
     (manifest.ports || []).forEach((portMap) => {
       args.push(`-p ${portMap.host}:${portMap.container}`);
     });
 
+    // environment variables
     objectAsArray(manifest.environmentVariables || {}).forEach((mapping) => {
       args.push(`-e ${mapping.key}="${mapping.value}"`);
     });
 
+    // add secrets logic here!
+    const secrets = await this.secretService.prepareSecrets(manifest);
+    (secrets || []).forEach(({ hostFile, containerFile }) => {
+      args.push(`-v ${hostFile}:${containerFile}`);
+    });
+
+    // **** this MUST be the last one ****
     args.push(manifest.image);
 
     const createCommand = args.join(" ");

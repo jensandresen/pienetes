@@ -22,4 +22,8 @@ COPY src/* ./
 RUN mkdir /data-migration
 COPY database /data-migration
 
+RUN mkdir /secrets
+ENV LOCAL_SECRETS_DIR=/secrets
+ENV HOST_SECRETS_DIR=/secrets
+
 ENTRYPOINT [ "bash", "bootstrap.sh" ]

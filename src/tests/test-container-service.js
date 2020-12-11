@@ -6,8 +6,18 @@ const dummyCallback = () => {};
 const buildSut = (overrides) => {
   const defaults = {
     cmdRunner: dummyCallback,
+    secretService: { prepareSecrets: dummyCallback },
   };
   return new ContainerService({ ...defaults, ...overrides });
+};
+
+const buildServiceDefinition = (overrides) => {
+  const defaults = {
+    name: "foo-name",
+    image: "foo-image",
+  };
+
+  return { ...defaults, ...overrides };
 };
 
 describe("container-service", async function () {
@@ -122,6 +132,61 @@ describe("container-service", async function () {
 
         assert.include(actualCommand, '-e foo="bar"');
         assert.include(actualCommand, '-e baz="qux"');
+      });
+    });
+
+    describe("on simple service definition with secrets", async function () {
+      it("sets expected secret when single specified", async function () {
+        const secretServiceStub = {
+          prepareSecrets: () => [
+            {
+              hostFile: "foo",
+              containerFile: "bar",
+            },
+          ],
+        };
+
+        const sut = buildSut({
+          cmdRunner: (cmd) => (actualCommand = cmd),
+          secretService: secretServiceStub,
+        });
+
+        await sut.createContainer(
+          buildServiceDefinition({
+            secrets: ["dummy"],
+          })
+        );
+
+        assert.include(actualCommand, "-v foo:bar");
+      });
+
+      it("sets expected secret when multiple specified", async function () {
+        const secretServiceStub = {
+          prepareSecrets: () => [
+            {
+              hostFile: "foo",
+              containerFile: "bar",
+            },
+            {
+              hostFile: "baz",
+              containerFile: "qux",
+            },
+          ],
+        };
+
+        const sut = buildSut({
+          cmdRunner: (cmd) => (actualCommand = cmd),
+          secretService: secretServiceStub,
+        });
+
+        await sut.createContainer(
+          buildServiceDefinition({
+            secrets: ["dummy"],
+          })
+        );
+
+        assert.include(actualCommand, "-v foo:bar");
+        assert.include(actualCommand, "-v baz:qux");
       });
     });
   });

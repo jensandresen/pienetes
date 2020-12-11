@@ -79,5 +79,147 @@ describe("manifest-utils", async function () {
         baz: "qux",
       });
     });
+
+    describe("secrets", async function () {
+      it("returns expected secrets when none is defined", async function () {
+        const expected = undefined;
+
+        const { service } = await manifestDeserializer(`
+        service:
+          name: dummy
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when single is defined", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: undefined,
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - foo
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when single is defined with double quotes", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: undefined,
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - "foo"
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when single is defined with single quotes", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: undefined,
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - 'foo'
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when multiple is defined", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: undefined,
+          },
+          {
+            name: "bar",
+            mountPath: undefined,
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - foo
+            - bar
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when single is defined with mount path", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: "bar",
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - foo:bar
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when single is defined in quotes and with mount path", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: "bar",
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - "foo:bar"
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+
+      it("returns expected secrets when multiple is defined with mount path", async function () {
+        const expected = [
+          {
+            name: "foo",
+            mountPath: "bar",
+          },
+          {
+            name: "baz",
+            mountPath: "qux",
+          },
+        ];
+
+        const { service } = await manifestDeserializer(`
+        service:
+          secrets:
+            - foo:bar
+            - baz:qux
+      `);
+
+        assert.deepEqual(service.secrets, expected);
+      });
+    });
   });
 });

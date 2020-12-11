@@ -12,6 +12,25 @@ function transformPorts(ports) {
   });
 }
 
+function transformSecrets(secrets) {
+  if (!secrets) {
+    return undefined;
+  }
+
+  return (secrets || []).map((secret) => {
+    const [name, mountPath] = secret
+      .replace('"', "")
+      .replace("'", "")
+      .split(":")
+      .map((x) => x.trim());
+
+    return {
+      name: name,
+      mountPath: mountPath,
+    };
+  });
+}
+
 export function manifestDeserializer(text) {
   return new Promise((resolve) => {
     const manifest = yaml.parse(text);
@@ -19,6 +38,8 @@ export function manifestDeserializer(text) {
     if (manifest.service.ports) {
       manifest.service.ports = transformPorts(manifest.service.ports);
     }
+
+    manifest.service.secrets = transformSecrets(manifest.service.secrets);
 
     resolve(manifest);
   });
