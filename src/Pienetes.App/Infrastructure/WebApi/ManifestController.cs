@@ -1,42 +1,33 @@
-using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Pienetes.App.Application;
 
 namespace Pienetes.App.Infrastructure.WebApi
 {
     [ApiController]
-    [Route("api/manifests")]
+    // [Route("api/manifests")]
     public class ManifestController : ControllerBase
     {
-        public ManifestController()
+        private readonly IManifestApplicationService _manifestApplicationService;
+
+        public ManifestController(IManifestApplicationService manifestApplicationService)
         {
-            
+            _manifestApplicationService = manifestApplicationService;
         }
 
-        [HttpGet("")]
-        public async Task<IActionResult> Get()
-        {
-            return Ok("lala");
-        }
-        
         [HttpPost("")]
         [Route("api/applymanifest")]
+        [Consumes("text/yaml", "text/yml", "application/yaml", "application/yml")]
         public async Task<IActionResult> ApplyManifest()
         {
-            return Ok("lala");
-        }
-    }
+            using (var reader = new StreamReader(Request.Body))
+            {
+                var manifestContent = await reader.ReadToEndAsync();
+                await _manifestApplicationService.QueueManifest(manifestContent, "text/yaml");
 
-    public class ManifestDTO
-    {
-        public string Version { get; set; }
-        public class ServiceDefinition
-        {
-            public string Name { get; set; }
-            public string Image { get; set; }
-            public string[] Ports { get; set; }
-            public string[] Secrets { get; set; }
-            public Dictionary<string, string> EnvironmentVariables { get; set; }
+                return Accepted();
+            }
         }
     }
 }

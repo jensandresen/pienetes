@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Model
 {
     public abstract class Entity<TId> : IEquatable<Entity<TId>>
     {

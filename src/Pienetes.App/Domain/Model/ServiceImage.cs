@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Model
 {
     public class ServiceImage : ValueObject
     {
@@ -57,5 +57,16 @@ namespace Pienetes.App.Domain
             
             return new ServiceImage(name.Value);
         }
+
+        public static implicit operator ServiceImage(string image)
+        {
+            return ServiceImage.Parse(image);
+        }
+
+        public static implicit operator string(ServiceImage image)
+        {
+            return image.ToString();
+        }
+            
     }
 }

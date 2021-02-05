@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Pienetes.App.Domain;
+using Pienetes.App.Domain.Model;
 
 namespace Pienetes.App.Infrastructure.Persistence
 {
@@ -13,20 +15,27 @@ namespace Pienetes.App.Infrastructure.Persistence
         {
             _dbContext = dbContext;
         }
-        
+
+        public async Task<ServiceDefinition> Get(ServiceId id)
+        {
+            string serviceId = id;
+            return await _dbContext.ServiceDefinitions.SingleOrDefaultAsync(x => x.Id == serviceId);
+        }
+
         public async Task<IEnumerable<ServiceDefinition>> GetAll()
         {
-            return Enumerable.Empty<ServiceDefinition>();
+            return await _dbContext.ServiceDefinitions.OrderBy(x => x.Id).ToListAsync();
         }
 
-        public async Task<ServiceDefinition> FindByChecksum(string checksum)
+        public async Task Add(ServiceDefinition serviceDefinition)
         {
-            return null;
+            await _dbContext.ServiceDefinitions.AddAsync(serviceDefinition);
         }
 
-        public async Task<ServiceDefinition> FindByName(string name)
+        public async Task<bool> Exists(ServiceId serviceId)
         {
-            return null;
+            string id = serviceId;
+            return await _dbContext.ServiceDefinitions.AnyAsync(x => x.Id == id);
         }
     }
 }

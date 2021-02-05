@@ -1,6 +1,7 @@
 using System;
 using Microsoft.IdentityModel.Tokens;
 using Pienetes.App.Domain;
+using Pienetes.App.Domain.Model;
 using Pienetes.Test.Builders;
 using Xunit;
 

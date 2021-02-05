@@ -1,6 +1,6 @@
 using System;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Exceptions
 {
     public class PortMappingException : Exception
     {

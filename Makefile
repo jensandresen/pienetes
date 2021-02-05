@@ -59,8 +59,8 @@ clean-temp-dir:
 	mkdir $(TEMP_DIR)
 
 start-local: CONNECTION_STRING=postgres://pg:123456@localhost:5432/postgres
-start-local: clean-temp-dir start-db start-db-migration
-	@cd src && CONNECTION_STRING=$(CONNECTION_STRING) LOCAL_SECRETS_DIR=$(TEMP_DIR) HOST_SECRETS_DIR=$(TEMP_DIR) npm start
+start-local: clean-temp-dir start-db start-db-migration dev
+	# @cd src && CONNECTION_STRING=$(CONNECTION_STRING) LOCAL_SECRETS_DIR=$(TEMP_DIR) HOST_SECRETS_DIR=$(TEMP_DIR) npm start
 
 dev:
 	@cd src && dotnet watch --project Pienetes.App/ run

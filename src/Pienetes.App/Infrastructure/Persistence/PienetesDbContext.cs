@@ -1,10 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Pienetes.App.Domain;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Pienetes.App.Application;
+using Pienetes.App.Domain.Model;
+using Pienetes.App.Infrastructure.Messaging;
+using Pienetes.App.Infrastructure.Persistence.Converters;
 
 namespace Pienetes.App.Infrastructure.Persistence
 {
@@ -15,7 +16,15 @@ namespace Pienetes.App.Infrastructure.Persistence
             
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+            optionsBuilder.UseSnakeCaseNamingConvention();
+        }
+
         public DbSet<ServiceDefinition> ServiceDefinitions { get; set; }
+        public DbSet<QueuedManifest> QueuedManifests { get; set; }
+        public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -28,87 +37,35 @@ namespace Pienetes.App.Infrastructure.Persistence
                 cfg.Property(x => x.Id).HasConversion(new ServiceIdConverter());
                 cfg.Property(x => x.Image).HasConversion(new ServiceImageConverter());
                 cfg.Ignore(x => x.Checksum);
-                cfg.Property(x => x.Ports).HasConversion(new ServicePortMappingConverter());
-                cfg.Property(x => x.Secrets).HasConversion(new ServiceSecretConverter());
-                cfg.Property(x => x.EnvironmentVariables).HasConversion(new ServiceEnvironmentVariableConverter());
+                cfg.Property(x => x.Ports).HasConversion(new ServicePortMappingConverter(), new ValueObjectCollectionComparer<ServicePortMapping>());
+                cfg.Property(x => x.Secrets).HasConversion(new ServiceSecretConverter(), new ValueObjectCollectionComparer<ServiceSecret>());
+                cfg
+                    .Property(x => x.EnvironmentVariables)
+                    .HasConversion(new ServiceEnvironmentVariableConverter(), new ValueObjectCollectionComparer<ServiceEnvironmentVariable>());
+            });
+
+            modelBuilder.Entity<QueuedManifest>(cfg =>
+            {
+                cfg.ToTable("queued_manifest");
+                cfg.HasKey(x => x.Id);
+                cfg.Property(x => x.Id).HasConversion(new QueuedManifestIdConverter());
+                cfg.Property(x => x.Content);
+                cfg.Property(x => x.ContentType);
+                cfg.Property(x => x.IsProcessed);
+                cfg.Property(x => x.QueuedTimestamp);
+            });
+
+            modelBuilder.Entity<OutboxMessage>(cfg =>
+            {
+                cfg.ToTable("outbox");
+                cfg.HasKey(x => x.MessageId);
+                cfg.Property(x => x.MessageType);
+                cfg.Property(x => x.AggregateId);
+                cfg.Property(x => x.CustomHeaders);
+                cfg.Property(x => x.Payload);
+                cfg.Property(x => x.CreatedAt);
+                cfg.Property(x => x.SentAt);
             });
         }
-    }
-
-    public class ServiceIdConverter : ValueConverter<ServiceId, string>
-    {
-        public ServiceIdConverter() : base(ToDb, FromDb)
-        {
-        }
-
-        private static Expression<Func<ServiceId, string>> ToDb => value => value.ToString();
-        private static Expression<Func<string, ServiceId>> FromDb => text => ServiceId.Create(text);
-    }
-
-    public class ServiceImageConverter : ValueConverter<ServiceImage, string>
-    {
-        public ServiceImageConverter() : base(ToDb, FromDb)
-        {
-            
-        }
-
-        private static Expression<Func<ServiceImage, string>> ToDb => image => image.ToString();
-        private static Expression<Func<string, ServiceImage>> FromDb => value => ServiceImage.Parse(value);
-    }
-
-    public class ServicePortMappingConverter : ValueConverter<IEnumerable<ServicePortMapping>, string>
-    {
-        public ServicePortMappingConverter() : base(ToDb, FromDb)
-        {
-        }
-
-        private static Expression<Func<IEnumerable<ServicePortMapping>, string>> ToDb =>
-            mappings => string.Join(
-                ",",
-                mappings.Select(x => x.ToString())
-            );
-
-        private static Expression<Func<string, IEnumerable<ServicePortMapping>>> FromDb =>
-            text => (text ?? "")
-                .Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(ServicePortMapping.Parse);
-    }
-
-    public class ServiceSecretConverter : ValueConverter<IEnumerable<ServiceSecret>, string>
-    {
-        public ServiceSecretConverter() : base(ToDb, FromDb)
-        {
-            
-        }
-
-        private static Expression<Func<string, IEnumerable<ServiceSecret>>> FromDb =>
-            text => (text ?? "")
-                .Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(ServiceSecret.Parse);
-
-        private static Expression<Func<IEnumerable<ServiceSecret>, string>> ToDb =>
-            secrets => string.Join(
-                ",",
-                secrets.Select(x => x.ToString())
-            );
-    }
-
-    public class ServiceEnvironmentVariableConverter : ValueConverter<IEnumerable<ServiceEnvironmentVariable>, string>
-    {
-        public ServiceEnvironmentVariableConverter() : base(ToDb, FromDb)
-        {
-            
-        }
-
-        private static Expression<Func<IEnumerable<ServiceEnvironmentVariable>, string>> ToDb =>
-            variables => string.Join(
-                ",",
-                variables.Select(x => x.ToString())
-            );
-
-        private static Expression<Func<string, IEnumerable<ServiceEnvironmentVariable>>> FromDb => 
-            text => (text ?? "")
-                .Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(ServiceEnvironmentVariable.Parse);
     }
 }

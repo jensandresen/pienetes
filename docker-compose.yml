@@ -1,0 +1,22 @@
+version: "3"
+services:
+  pienetes-db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: pg
+      POSTGRES_PASSWORD: 123456
+
+  migrations:
+    build: ./database
+    environment:
+      PGHOST: pienetes-db
+      PGPORT: 5432
+      PGDATABASE: postgres
+      PGUSER: pg
+      PGPASSWORD: 123456
+    volumes:
+      - ${PWD}/database:/data
+    depends_on:
+      - pienetes-db

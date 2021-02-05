@@ -1,5 +1,7 @@
 using System.Linq;
 using Pienetes.App.Domain;
+using Pienetes.App.Domain.Exceptions;
+using Pienetes.App.Domain.Model;
 using Pienetes.Test.Builders;
 using Xunit;
 

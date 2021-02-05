@@ -1,5 +1,6 @@
 using System;
 using Pienetes.App.Domain;
+using Pienetes.App.Domain.Model;
 using Pienetes.Test.Builders;
 using Xunit;
 

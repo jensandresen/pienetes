@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Model
 {
     public abstract class ValueObject
     {

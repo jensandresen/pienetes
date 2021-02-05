@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Model
 {
     public class ServiceEnvironmentVariable : ValueObject
     {

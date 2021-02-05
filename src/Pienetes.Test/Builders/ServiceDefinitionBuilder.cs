@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pienetes.App.Domain;
+using Pienetes.App.Domain.Model;
 
 namespace Pienetes.Test.Builders
 {

@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
+using Pienetes.App.Domain.Events;
+using Pienetes.App.Domain.Exceptions;
 
-namespace Pienetes.App.Domain
+namespace Pienetes.App.Domain.Model
 {
-    public class ServiceDefinition : Entity<ServiceId>
+    public class ServiceDefinition : AggregateRoot<ServiceId>
     {
-        private readonly ServiceImage _image;
-        private readonly IList<ServicePortMapping> _ports;
-        private readonly IList<ServiceSecret> _secrets;
-        private readonly IList<ServiceEnvironmentVariable> _environmentVariables;
+        private ServiceImage _image;
+        private IList<ServicePortMapping> _ports;
+        private IList<ServiceSecret> _secrets;
+        private IList<ServiceEnvironmentVariable> _environmentVariables;
 
         private ServiceDefinition(ServiceId id, ServiceImage image, IEnumerable<ServicePortMapping> ports, 
             IEnumerable<ServiceSecret> secrets, IEnumerable<ServiceEnvironmentVariable> environmentVariables) : base(id)
@@ -24,40 +24,19 @@ namespace Pienetes.App.Domain
 
         public ServiceImage Image => _image;
 
-        public string Checksum
+        public void Change(ServiceImage newImage, IEnumerable<ServicePortMapping> ports, IEnumerable<ServiceSecret> secrets, 
+            IEnumerable<ServiceEnvironmentVariable> environmentVariables)
         {
-            get
-            {
-                var checksumComponents = new StringBuilder();
+            _image = newImage;
+            _ports = new List<ServicePortMapping>(ports);
+            _secrets = new List<ServiceSecret>(secrets);
+            _environmentVariables = new List<ServiceEnvironmentVariable>(environmentVariables);
 
-                void Include<T>(T item)
-                {
-                    checksumComponents.Append(item);
-                }
-                
-                void IncludeAll<T>(IEnumerable<T> items)
-                {
-                    foreach (var item in items)
-                    {
-                        Include(item);
-                    }
-                }
-                
-                Include(Id);
-                Include(Image);
-                IncludeAll(Ports);
-                IncludeAll(Secrets);
-                IncludeAll(EnvironmentVariables);
-
-                var hash = MD5.HashData(System.Text.Encoding.UTF8.GetBytes(checksumComponents.ToString()));
-
-                return BitConverter
-                    .ToString(hash)
-                    .Replace("-", "")
-                    .ToUpperInvariant();
-            }
+            this.Raise(new ExistingServiceDefinitionHasBeenChanged(Id));
         }
-        
+
+        public string Checksum => ChecksumHelper.ComputeChecksum(EnvironmentVariables, Secrets, Ports, Image, Id);
+
         public IEnumerable<ServicePortMapping> Ports => _ports;
         public void AddPortMapping(ServicePortMapping portMapping)
         {
@@ -72,6 +51,14 @@ namespace Pienetes.App.Domain
             }
             
             _ports.Add(portMapping);
+        }
+
+        public void AddPortMappings(IEnumerable<ServicePortMapping> portMappings)
+        {
+            foreach (var mapping in portMappings)
+            {
+                AddPortMapping(mapping);
+            }
         }
         
         public IEnumerable<ServiceSecret> Secrets => _secrets;
@@ -90,6 +77,14 @@ namespace Pienetes.App.Domain
             _secrets.Add(secret);
         }
 
+        public void AddSecrets(IEnumerable<ServiceSecret> secrets)
+        {
+            foreach (var secret in secrets)
+            {
+                AddSecret(secret);
+            }
+        }
+
         public IEnumerable<ServiceEnvironmentVariable> EnvironmentVariables => _environmentVariables;
         public void AddEnvironmentVariable(ServiceEnvironmentVariable variable)
         {
@@ -106,15 +101,27 @@ namespace Pienetes.App.Domain
             _environmentVariables.Add(variable);
         }
 
+        public void AddEnvironmentVariables(IEnumerable<ServiceEnvironmentVariable> variables)
+        {
+            foreach (var variable in variables)
+            {
+                AddEnvironmentVariable(variable);
+            }
+        }
+        
         public static ServiceDefinition Create(ServiceId id, ServiceImage image)
         {
-            return new ServiceDefinition(
+            var instance =  new ServiceDefinition(
                 id: id,
                 image: image,
                 ports: Enumerable.Empty<ServicePortMapping>(), 
                 secrets: Enumerable.Empty<ServiceSecret>(), 
                 environmentVariables: Enumerable.Empty<ServiceEnvironmentVariable>()
             );
+            
+            instance.Raise(new NewServiceDefinitionAdded(instance.Id));
+
+            return instance;
         }
     }
 }
