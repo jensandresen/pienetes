@@ -86,7 +86,7 @@ namespace Pienetes.App
             eventRegistry
                 .Register<NewManifestHasBeenQueued>(
                     eventType: "new_manifest_has_been_queued",
-                    topic: "manifests",
+                    topic: "pienetes.manifests",
                     handlers: handlers =>
                     {
                         handlers.Add<AddOrUpdateResourceDefinitions>();
@@ -94,7 +94,7 @@ namespace Pienetes.App
                 )
                 .Register<NewServiceDefinitionAdded>(
                     eventType: "new_service_definition_added",
-                    topic: "service_definitions",
+                    topic: "pienetes.service_definitions",
                     handlers: handlers =>
                     {
                         // handlers.Add<>()
@@ -102,7 +102,7 @@ namespace Pienetes.App
                 )
                 .Register<ExistingServiceDefinitionHasBeenChanged>(
                     eventType: "existing_service_definition_has_changed",
-                    topic: "service_definitions",
+                    topic: "pienetes.service_definitions",
                     handlers: handlers =>
                     {
 
@@ -127,11 +127,7 @@ namespace Pienetes.App
             services.AddTransient<InboxDispatcher>();
             services.AddSingleton<MessagingGateway>(_ =>
             {
-                var topics = eventRegistry
-                    .Topics
-                    .Select(x => $"pienetes.{x}")
-                    .ToArray();
-                
+                var topics = eventRegistry.Topics.ToArray();
                 return MessagingGateway.Init(topics);
             });
         }

@@ -55,7 +55,12 @@ namespace Pienetes.App.Infrastructure.Messaging
                             dbContext.Attach(message);
                             message.SentAt = DateTime.Now;
 
-                            await messagingGateway.Publish(message.MessageId, message.MessageType, message.Payload);
+                            await messagingGateway.Publish(
+                                topic: registration.Topic,
+                                messageId: message.MessageId,
+                                messageType: message.MessageType,
+                                payload: message.Payload
+                            );
                             
                             await dbContext.SaveChangesAsync();
                             await transaction.CommitAsync();

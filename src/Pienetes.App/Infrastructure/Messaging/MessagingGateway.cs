@@ -61,7 +61,7 @@ namespace Pienetes.App.Infrastructure.Messaging
             return new MessagingGateway(connectionFactory, connection, channel);
         }
 
-        public async Task Publish(string messageId, string messageType, string payload)
+        public async Task Publish(string topic, string messageId, string messageType, string payload)
         {
             var properties = _channel.CreateBasicProperties();
             properties.MessageId = messageId;
@@ -69,8 +69,8 @@ namespace Pienetes.App.Infrastructure.Messaging
             properties.ContentType = "application/json";
                 
             _channel.BasicPublish(
-                exchange: "",
-                routingKey: QueueName,
+                exchange: topic,
+                routingKey: "",
                 basicProperties: properties,
                 body: Encoding.UTF8.GetBytes(payload)
             );
@@ -78,7 +78,7 @@ namespace Pienetes.App.Infrastructure.Messaging
         
         public void RegisterReceiveCallback(TransportMessageHandler callback)
         {
-            var consumer = new AsyncEventingBasicConsumer(_channel);
+            var consumer = new EventingBasicConsumer(_channel);
             consumer.Received += async (sender, args) =>
             {
                 var messageId = args.BasicProperties.MessageId;
