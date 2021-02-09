@@ -38,8 +38,6 @@ namespace Pienetes.App.Infrastructure.Messaging
         }
     }
     
-    
-    
     public class QueuedManifestIdJsonConverter : JsonConverter<QueuedManifestId>
     {
         public override QueuedManifestId? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

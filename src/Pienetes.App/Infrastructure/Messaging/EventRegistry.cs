@@ -28,11 +28,16 @@ namespace Pienetes.App.Infrastructure.Messaging
             return _registrations.SingleOrDefault(x => x.EventType == eventType);
         }
         
-        public record Registration(string EventType, Type EventInstanceType, IEnumerable<Type> EventHandlerInstanceTypes);
+        public record Registration(string EventType, string Topic, Type EventInstanceType, IEnumerable<Type> EventHandlerInstanceTypes);
 
         public List<Registration> Registrations => _registrations;
 
-        public EventRegistry Register<TEvent>(string eventType, Action<HandlerConfigurator<TEvent>> handlers = null)
+        public IEnumerable<string> Topics => Registrations
+            .Select(x => x.Topic)
+            .Distinct()
+            .OrderBy(x => x);
+
+        public EventRegistry Register<TEvent>(string eventType, string topic, Action<HandlerConfigurator<TEvent>> handlers = null)
             where TEvent : IDomainEvent
         {
             var handlerConfigurator = new HandlerConfigurator<TEvent>();
@@ -40,6 +45,7 @@ namespace Pienetes.App.Infrastructure.Messaging
 
             _registrations.Add(new Registration(
                 EventType: eventType,
+                Topic: topic, 
                 EventInstanceType: typeof(TEvent),
                 EventHandlerInstanceTypes: handlerConfigurator.RegisteredHandlerTypes)
             );

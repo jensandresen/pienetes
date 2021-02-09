@@ -86,6 +86,7 @@ namespace Pienetes.App
             eventRegistry
                 .Register<NewManifestHasBeenQueued>(
                     eventType: "new_manifest_has_been_queued",
+                    topic: "manifests",
                     handlers: handlers =>
                     {
                         handlers.Add<AddOrUpdateResourceDefinitions>();
@@ -93,6 +94,7 @@ namespace Pienetes.App
                 )
                 .Register<NewServiceDefinitionAdded>(
                     eventType: "new_service_definition_added",
+                    topic: "service_definitions",
                     handlers: handlers =>
                     {
                         // handlers.Add<>()
@@ -100,6 +102,7 @@ namespace Pienetes.App
                 )
                 .Register<ExistingServiceDefinitionHasBeenChanged>(
                     eventType: "existing_service_definition_has_changed",
+                    topic: "service_definitions",
                     handlers: handlers =>
                     {
 
@@ -119,6 +122,18 @@ namespace Pienetes.App
             services.AddSingleton<OutboxScheduler>();
             services.AddSingleton<IOutboxScheduler>(provider => provider.GetRequiredService<OutboxScheduler>());
             services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<OutboxScheduler>());
+
+            services.AddHostedService<InboxScheduler>();
+            services.AddTransient<InboxDispatcher>();
+            services.AddSingleton<MessagingGateway>(_ =>
+            {
+                var topics = eventRegistry
+                    .Topics
+                    .Select(x => $"pienetes.{x}")
+                    .ToArray();
+                
+                return MessagingGateway.Init(topics);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

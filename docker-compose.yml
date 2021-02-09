@@ -20,3 +20,9 @@ services:
       - ${PWD}/database:/data
     depends_on:
       - pienetes-db
+
+  rabbit:
+    image: rabbitmq:3.8.11-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Pienetes.App.Application;
 using Pienetes.App.Domain.Events;
-using Pienetes.App.Domain.Model;
 using Pienetes.App.Infrastructure.Persistence;
 using YamlDotNet.RepresentationModel;
 
@@ -25,6 +24,7 @@ namespace Pienetes.App.Domain.Policies
         
         public async Task Handle(NewManifestHasBeenQueued e)
         {
+            Console.WriteLine($"hello from {this.GetType().Name}");
             // var queuedManifest = await _queuedManifestRepository.Get(e.ManifestId);
             // if (queuedManifest == null)
             // {
