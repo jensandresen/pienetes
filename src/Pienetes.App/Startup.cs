@@ -35,38 +35,31 @@ namespace Pienetes.App
 
             var connectionString = Configuration["PIENETES_DATABASE_CONNECTION_STRING"];
 
-            // services
-            //     .AddEntityFrameworkNpgsql()
-            //     .AddDbContext<PienetesDbContext>(options => options.UseNpgsql(connectionString));
-
             services.AddDbContext<PienetesDbContext>(options => options.UseNpgsql(connectionString));
-            
+            services.AddTransient<TransactionalHelper>();
             services.AddTransient<IServiceDefinitionRepository, ServiceDefinitionRepository>();
-
             services.AddTransient<OutboxManifestApplicationServiceDecorator>();
             services.AddTransient<TransactionalManifestApplicationServiceDecorator>();
-            services.AddTransient<OutboxScheduleImmediatelyManifestApplicationService>();
-            services.AddTransient<ManifestApplicationService>();
+            services.AddTransient<OutboxScheduleImmediatelyManifestApplicationServiceDecorator>();
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
             services.AddTransient<IQueuedManifestRepository, QueuedManifestRepository>();
             
+            services.AddTransient<ManifestApplicationService>();
             services.AddTransient<IManifestApplicationService>(serviceProvider =>
             {
                 var inner = serviceProvider.GetRequiredService<ManifestApplicationService>();
 
                 var layer1 = new OutboxManifestApplicationServiceDecorator(
                     inner: inner,
-                    eventRegistry: serviceProvider.GetRequiredService<IEventRegistry>(),
-                    serializer: serviceProvider.GetRequiredService<IMessageSerializer>(),
-                    dbContext: serviceProvider.GetRequiredService<PienetesDbContext>()
+                    outboxHelper: serviceProvider.GetRequiredService<OutboxHelper>()
                 );
 
                 var layer2 = new TransactionalManifestApplicationServiceDecorator(
                     inner: layer1,
-                    dbContext: serviceProvider.GetRequiredService<PienetesDbContext>()
+                    transactionalHelper: serviceProvider.GetRequiredService<TransactionalHelper>()
                 );
 
-                var layer3 = new OutboxScheduleImmediatelyManifestApplicationService(
+                var layer3 = new OutboxScheduleImmediatelyManifestApplicationServiceDecorator(
                     inner: layer2,
                     outboxScheduler: serviceProvider.GetRequiredService<IOutboxScheduler>()
                 );
@@ -74,7 +67,28 @@ namespace Pienetes.App
                 return layer3;
             });
 
-            services.AddTransient<IServiceDefinitionApplicationService, ServiceDefinitionApplicationService>();
+            services.AddTransient<ServiceDefinitionApplicationService>();
+            services.AddTransient<IServiceDefinitionApplicationService>(serviceProvider =>
+            {
+                var inner = serviceProvider.GetRequiredService<ServiceDefinitionApplicationService>();
+
+                var layer1 = new OutboxServiceDefinitionApplicationServiceDecorator(
+                    inner: inner,
+                    outboxHelper: serviceProvider.GetRequiredService<OutboxHelper>()
+                );
+
+                var layer2 = new TransactionalServiceDefinitionApplicationServiceDecorator(
+                    inner: layer1,
+                    transactionalHelper: serviceProvider.GetRequiredService<TransactionalHelper>()
+                );
+
+                var layer3 = new OutboxScheduleImmediatelyServiceDefinitionApplicationServiceDecorator(
+                    inner: layer2,
+                    outboxScheduler: serviceProvider.GetRequiredService<IOutboxScheduler>()
+                );
+
+                return layer3;
+            });
 
             ConfigureMessaging(services);
         }
@@ -118,6 +132,7 @@ namespace Pienetes.App
                 services.AddTransient(handlerType);
             }
 
+            services.AddTransient<OutboxHelper>();
             services.AddSingleton<OutboxDispatcher>();
             services.AddSingleton<OutboxScheduler>();
             services.AddSingleton<IOutboxScheduler>(provider => provider.GetRequiredService<OutboxScheduler>());

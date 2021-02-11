@@ -37,7 +37,7 @@ namespace Pienetes.App.Infrastructure.Persistence.Converters
         }
 
         private static Expression<Func<IEnumerable<TValueObject>, IEnumerable<TValueObject>>> MySnapshotExpression =>
-            c => c.ToArray();
+            c => c != null ? c.ToArray() : Enumerable.Empty<TValueObject>();
 
         private static Expression<Func<IEnumerable<TValueObject>, int>> MyHashCodeExpression =>
             c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode()));

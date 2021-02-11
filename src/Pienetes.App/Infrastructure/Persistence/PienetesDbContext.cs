@@ -36,12 +36,16 @@ namespace Pienetes.App.Infrastructure.Persistence
                 cfg.HasKey(x => x.Id);
                 cfg.Property(x => x.Id).HasConversion(new ServiceIdConverter());
                 cfg.Property(x => x.Image).HasConversion(new ServiceImageConverter());
-                cfg.Ignore(x => x.Checksum);
-                cfg.Property(x => x.Ports).HasConversion(new ServicePortMappingConverter(), new ValueObjectCollectionComparer<ServicePortMapping>());
-                cfg.Property(x => x.Secrets).HasConversion(new ServiceSecretConverter(), new ValueObjectCollectionComparer<ServiceSecret>());
+                cfg
+                    .Property(x => x.Ports)
+                    .HasConversion(new ServicePortMappingConverter(), new ValueObjectCollectionComparer<ServicePortMapping>());
+                cfg
+                    .Property(x => x.Secrets)
+                    .HasConversion(new ServiceSecretConverter(), new ValueObjectCollectionComparer<ServiceSecret>());
                 cfg
                     .Property(x => x.EnvironmentVariables)
                     .HasConversion(new ServiceEnvironmentVariableConverter(), new ValueObjectCollectionComparer<ServiceEnvironmentVariable>());
+                cfg.Ignore(x => x.Checksum);
             });
 
             modelBuilder.Entity<QueuedManifest>(cfg =>

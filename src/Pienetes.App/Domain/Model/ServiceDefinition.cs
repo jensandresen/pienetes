@@ -27,12 +27,39 @@ namespace Pienetes.App.Domain.Model
         public void Change(ServiceImage newImage, IEnumerable<ServicePortMapping> ports, IEnumerable<ServiceSecret> secrets, 
             IEnumerable<ServiceEnvironmentVariable> environmentVariables)
         {
-            _image = newImage;
-            _ports = new List<ServicePortMapping>(ports);
-            _secrets = new List<ServiceSecret>(secrets);
-            _environmentVariables = new List<ServiceEnvironmentVariable>(environmentVariables);
+            var hasChanged = false;
 
-            this.Raise(new ExistingServiceDefinitionHasBeenChanged(Id));
+            if (_image != newImage)
+            {
+                _image = newImage;
+                hasChanged = true;
+            }
+
+            var newPorts = ports.ToList();
+            if (!_ports.SequenceEqual(newPorts))
+            {
+                _ports = newPorts;
+                hasChanged = true;
+            }
+
+            var newSecrets = secrets.ToList();
+            if (!_secrets.SequenceEqual(newSecrets))
+            {
+                _secrets = newSecrets;
+                hasChanged = true;
+            }
+
+            var newEnvironmentVariables = environmentVariables.ToList();
+            if (!_environmentVariables.SequenceEqual(newEnvironmentVariables))
+            {
+                _environmentVariables = newEnvironmentVariables;
+                hasChanged = true;
+            }
+
+            if (hasChanged)
+            {
+                this.Raise(new ExistingServiceDefinitionHasBeenChanged(Id));
+            }
         }
 
         public string Checksum => ChecksumHelper.ComputeChecksum(EnvironmentVariables, Secrets, Ports, Image, Id);

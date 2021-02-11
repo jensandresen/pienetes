@@ -20,5 +20,10 @@ namespace Pienetes.App.Application
 
             return manifest.Id;
         }
+
+        public async Task DequeueManifest(QueuedManifestId manifestId)
+        {
+            await _queuedManifestRepository.Remove(manifestId);
+        }
     }
 }

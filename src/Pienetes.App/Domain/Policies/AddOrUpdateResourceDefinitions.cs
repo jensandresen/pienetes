@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Pienetes.App.Application;
 using Pienetes.App.Domain.Events;
+using Pienetes.App.Domain.Model;
 using Pienetes.App.Infrastructure.Persistence;
 using YamlDotNet.RepresentationModel;
 
@@ -13,42 +14,45 @@ namespace Pienetes.App.Domain.Policies
     public class AddOrUpdateResourceDefinitions : IEventHandler<NewManifestHasBeenQueued>
     {
         private readonly IQueuedManifestRepository _queuedManifestRepository;
+        private readonly IManifestApplicationService _manifestApplicationService;
         private readonly IServiceDefinitionApplicationService _serviceDefinitionApplicationService;
 
         public AddOrUpdateResourceDefinitions(IQueuedManifestRepository queuedManifestRepository, 
+            IManifestApplicationService manifestApplicationService,
             IServiceDefinitionApplicationService serviceDefinitionApplicationService)
         {
             _queuedManifestRepository = queuedManifestRepository;
+            _manifestApplicationService = manifestApplicationService;
             _serviceDefinitionApplicationService = serviceDefinitionApplicationService;
         }
         
         public async Task Handle(NewManifestHasBeenQueued e)
         {
             Console.WriteLine($"hello from {this.GetType().Name}");
-            // var queuedManifest = await _queuedManifestRepository.Get(e.ManifestId);
-            // if (queuedManifest == null)
-            // {
-            //     return;
-            // }
-            //
-            // var manifest = ManifestEmbeddedDocument.Parse(queuedManifest.Content);
-            //
-            // // handle all resource definition types here!
-            // var serviceDefinition = manifest.GetServiceDefinition();
-            // if (serviceDefinition == null)
-            // {
-            //     await _queuedManifestRepository.Remove(queuedManifest.Id);
-            //     return;
-            // }
-            //
-            // await _serviceDefinitionApplicationService.AddOrUpdateService(
-            //     serviceName: serviceDefinition.Name,
-            //     image: ServiceImage.Parse(serviceDefinition.Image),
-            //     ports: serviceDefinition.Ports.Select(ServicePortMapping.Parse),
-            //     secrets: serviceDefinition.Secrets.Select(ServiceSecret.Parse),
-            //     environmentVariables: serviceDefinition.EnvironmentVariables.Select(x =>
-            //         new ServiceEnvironmentVariable(x.Key, x.Value))
-            // );
+
+            var queuedManifest = await _queuedManifestRepository.Get(e.ManifestId);
+            if (queuedManifest == null)
+            {
+                return;
+            }
+            
+            var manifest = ManifestEmbeddedDocument.Parse(queuedManifest.Content);
+            
+            // handle all resource definition types here!
+            var serviceDefinition = manifest.GetServiceDefinition();
+            if (serviceDefinition != null)
+            {
+                await _serviceDefinitionApplicationService.AddOrUpdateService(
+                    serviceName: serviceDefinition.Name,
+                    image: ServiceImage.Parse(serviceDefinition.Image),
+                    ports: serviceDefinition.Ports.Select(ServicePortMapping.Parse),
+                    secrets: serviceDefinition.Secrets.Select(ServiceSecret.Parse),
+                    environmentVariables: serviceDefinition.EnvironmentVariables.Select(x =>
+                        new ServiceEnvironmentVariable(x.Key, x.Value))
+                );
+            }
+
+            await _manifestApplicationService.DequeueManifest(e.ManifestId);
         }
     }
     

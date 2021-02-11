@@ -6,5 +6,6 @@ namespace Pienetes.App.Application
     public interface IManifestApplicationService
     {
         Task<QueuedManifestId> QueueManifest(string manifestContent, string contentType);
+        Task DequeueManifest(QueuedManifestId manifestId);
     }
 }

@@ -4,11 +4,11 @@ using Pienetes.App.Domain.Model;
 
 namespace Pienetes.App.Infrastructure.Messaging
 {
-    public class OutboxManifestApplicationServiceDecorator : OutboxDecorator, IManifestApplicationService
+    public class OutboxScheduleImmediatelyManifestApplicationServiceDecorator : OutboxScheduleImmediatlyDecorator, IManifestApplicationService
     {
         private readonly IManifestApplicationService _inner;
 
-        public OutboxManifestApplicationServiceDecorator(IManifestApplicationService inner, OutboxHelper outboxHelper) : base(outboxHelper)
+        public OutboxScheduleImmediatelyManifestApplicationServiceDecorator(IManifestApplicationService inner, IOutboxScheduler outboxScheduler) : base(outboxScheduler)
         {
             _inner = inner;
         }
@@ -16,7 +16,7 @@ namespace Pienetes.App.Infrastructure.Messaging
         public async Task<QueuedManifestId> QueueManifest(string manifestContent, string contentType)
         {
             var innerResult = await _inner.QueueManifest(manifestContent, contentType);
-            await OutboxHelper.QueueRecentEvents();
+            OutboxScheduler.ScheduleNow();
 
             return innerResult;
         }
@@ -24,7 +24,7 @@ namespace Pienetes.App.Infrastructure.Messaging
         public async Task DequeueManifest(QueuedManifestId manifestId)
         {
             await _inner.DequeueManifest(manifestId);
-            await OutboxHelper.QueueRecentEvents();
+            OutboxScheduler.ScheduleNow();
         }
     }
 }
