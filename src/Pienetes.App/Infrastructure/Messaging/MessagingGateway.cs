@@ -61,7 +61,7 @@ namespace Pienetes.App.Infrastructure.Messaging
             return new MessagingGateway(connectionFactory, connection, channel);
         }
 
-        public async Task Publish(string topic, string messageId, string messageType, string payload)
+        public Task Publish(string topic, string messageId, string messageType, string payload)
         {
             var properties = _channel.CreateBasicProperties();
             properties.MessageId = messageId;
@@ -74,6 +74,8 @@ namespace Pienetes.App.Infrastructure.Messaging
                 basicProperties: properties,
                 body: Encoding.UTF8.GetBytes(payload)
             );
+            
+            return Task.CompletedTask;  
         }
         
         public void RegisterReceiveCallback(TransportMessageHandler callback)
@@ -85,10 +87,17 @@ namespace Pienetes.App.Infrastructure.Messaging
                 var messageType = args.BasicProperties.Type;
                 var body = args.Body.ToArray();
                 var rawMessageBody = Encoding.UTF8.GetString(body);
-                
-                await callback(messageId, messageType, rawMessageBody);
 
-                _channel.BasicAck(args.DeliveryTag, false);
+                try
+                {
+                    await callback(messageId, messageType, rawMessageBody);
+                    _channel.BasicAck(args.DeliveryTag, false);
+                }
+                catch (Exception err)
+                {
+                    Console.WriteLine(err);
+                    throw;
+                }
             };
 
             _channel.BasicConsume(

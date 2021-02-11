@@ -2,9 +2,9 @@ using Pienetes.App.Domain.Model;
 
 namespace Pienetes.App.Domain.Events
 {
-    public class NewServiceDefinitionAdded : IDomainEvent
+    public class ExistingServiceDefinitionHasBeenChanged : IDomainEvent
     {
-        public NewServiceDefinitionAdded(ServiceId serviceId)
+        public ExistingServiceDefinitionHasBeenChanged(ServiceId serviceId)
         {
             ServiceId = serviceId;
         }

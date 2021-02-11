@@ -20,20 +20,11 @@ namespace Pienetes.App.Infrastructure.Messaging
 
         private async Task ThreadLoop()
         {
-            Console.WriteLine("Starting scheduled dispatching loop...");
-
             while (!_stoppingTokenSource.IsCancellationRequested)
             {
-                Console.WriteLine("loop: going to dispatch...");
                 await _outboxDispatcher.DispatchPendingMessages();
-
-                Console.WriteLine("loop: going to sleep...");
                 ResetEvent.WaitOne(TimeSpan.FromMinutes(1));
-                
-                Console.WriteLine("loop: woke up from sleep!");
             }
-
-            Console.WriteLine("Completed scheduled dispatching loop!");
         }
         
         public Task StartAsync(CancellationToken cancellationToken)
@@ -59,7 +50,7 @@ namespace Pienetes.App.Infrastructure.Messaging
             _stoppingTokenSource?.Cancel();
             ResetEvent?.Set();
 
-            _thread.Join(TimeSpan.FromMinutes(2));
+            _thread?.Join(TimeSpan.FromMinutes(2));
         }
 
         public void Dispose()

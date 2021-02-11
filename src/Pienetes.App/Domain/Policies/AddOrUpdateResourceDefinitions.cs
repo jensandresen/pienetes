@@ -26,22 +26,31 @@ namespace Pienetes.App.Domain.Policies
             _serviceDefinitionApplicationService = serviceDefinitionApplicationService;
         }
         
+        private void Log(string text)
+        {
+            Console.WriteLine($"{this.GetType().Name}: " + text);
+        }
+        
         public async Task Handle(NewManifestHasBeenQueued e)
         {
-            Console.WriteLine($"hello from {this.GetType().Name}");
+            Log($"hello from {this.GetType().Name}");
 
+            Log($"looking up queued manifest {e.ManifestId}...");
             var queuedManifest = await _queuedManifestRepository.Get(e.ManifestId);
             if (queuedManifest == null)
             {
+                Log($"no manifest with id '{e.ManifestId.ToString()}' has been queued.");
                 return;
             }
             
+            Log("parsing manifest...");
             var manifest = ManifestEmbeddedDocument.Parse(queuedManifest.Content);
             
             // handle all resource definition types here!
             var serviceDefinition = manifest.GetServiceDefinition();
             if (serviceDefinition != null)
             {
+                Log($"adding or updating service definition {serviceDefinition.Name}...");
                 await _serviceDefinitionApplicationService.AddOrUpdateService(
                     serviceName: serviceDefinition.Name,
                     image: ServiceImage.Parse(serviceDefinition.Image),
@@ -52,6 +61,7 @@ namespace Pienetes.App.Domain.Policies
                 );
             }
 
+            Log($"dequeuing manifest {e.ManifestId}...");
             await _manifestApplicationService.DequeueManifest(e.ManifestId);
         }
     }

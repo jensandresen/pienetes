@@ -36,42 +36,50 @@ namespace Pienetes.App.Infrastructure.Messaging
 
             foreach (var message in pendingMessages)
             {
-                using (var scope = _serviceProvider.CreateScope())
+                await DispatchMessage(message);
+            }
+        }
+
+        private async Task DispatchMessage(OutboxMessage message)
+        {
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var messagingGateway = scope.ServiceProvider.GetRequiredService<MessagingGateway>();
+                var eventRegistry = scope.ServiceProvider.GetRequiredService<IEventRegistry>();
+
+                var registration = eventRegistry.FindRegistrationFor(message.MessageType);
+                if (registration == null)
                 {
-                    var messagingGateway = scope.ServiceProvider.GetRequiredService<MessagingGateway>();
-                    var eventRegistry = scope.ServiceProvider.GetRequiredService<IEventRegistry>();
-                    
-                    var registration = eventRegistry.FindRegistrationFor(message.MessageType);
-                    if (registration == null)
+                    throw new Exception(
+                        $"Error! Event type \"{message.MessageType}\" has not been registered in the event registry.");
+                }
+
+                var dbContext = scope.ServiceProvider.GetRequiredService<PienetesDbContext>();
+                await using (var transaction = await dbContext.Database.BeginTransactionAsync())
+                {
+                    try
                     {
-                        throw new Exception($"Error! Event type \"{message.MessageType}\" has not been registered in the event registry.");
+                        dbContext.Attach(message);
+                        message.SentAt = DateTime.Now;
+
+                        Console.WriteLine($"Outbox: Externally dispatching message '{message.MessageType}'...");
+
+                        await messagingGateway.Publish(
+                            topic: registration.Topic,
+                            messageId: message.MessageId,
+                            messageType: message.MessageType,
+                            payload: message.Payload
+                        );
+
+                        await dbContext.SaveChangesAsync();
+                        await transaction.CommitAsync();
                     }
-
-                    var dbContext = scope.ServiceProvider.GetRequiredService<PienetesDbContext>();
-                    using (var transaction = await dbContext.Database.BeginTransactionAsync())
+                    catch (Exception err)
                     {
-                        try
-                        {
-                            dbContext.Attach(message);
-                            message.SentAt = DateTime.Now;
+                        Console.WriteLine(err);
+                        await transaction.RollbackAsync();
 
-                            await messagingGateway.Publish(
-                                topic: registration.Topic,
-                                messageId: message.MessageId,
-                                messageType: message.MessageType,
-                                payload: message.Payload
-                            );
-                            
-                            await dbContext.SaveChangesAsync();
-                            await transaction.CommitAsync();
-                        }
-                        catch (Exception err)
-                        {
-                            Console.WriteLine(err);
-                            await transaction.RollbackAsync();
-                            
-                            throw;
-                        }
+                        throw;
                     }
                 }
             }

@@ -10,6 +10,8 @@ using Pienetes.App.Application;
 using Pienetes.App.Domain.Events;
 using Pienetes.App.Domain.Model;
 using Pienetes.App.Domain.Policies;
+using Pienetes.App.Domain.Services;
+using Pienetes.App.Infrastructure.CommandLine;
 using Pienetes.App.Infrastructure.Messaging;
 using Pienetes.App.Infrastructure.Persistence;
 
@@ -90,6 +92,10 @@ namespace Pienetes.App
                 return layer3;
             });
 
+            services.AddTransient<IContainerApplicationService, ContainerApplicationService>();
+            services.AddTransient<IContainerDomainService, ContainerDomainService>();
+            services.AddTransient<ICommandExecutor, CommandExecutor>();
+            
             ConfigureMessaging(services);
         }
 
@@ -111,7 +117,7 @@ namespace Pienetes.App
                     topic: "pienetes.service_definitions",
                     handlers: handlers =>
                     {
-                        // handlers.Add<>()
+                        handlers.Add<SpinUpContainerForService>();
                     }
                 )
                 .Register<ExistingServiceDefinitionHasBeenChanged>(
@@ -119,7 +125,7 @@ namespace Pienetes.App
                     topic: "pienetes.service_definitions",
                     handlers: handlers =>
                     {
-
+                        handlers.Add<SpinUpContainerForService>();
                     }
                 );
             
